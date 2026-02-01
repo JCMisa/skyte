@@ -8,11 +8,14 @@ import ProfilePage from "./pages/ProfilePage";
 import { useAuthStore } from "./store/useAuthStore";
 import { useEffect } from "react";
 import { LoaderIcon } from "lucide-react";
+import { useThemeStore } from "./store/useThemeStore";
 
 function App() {
   const authUser = useAuthStore((s) => s.authUser);
   const checkAuth = useAuthStore((s) => s.checkAuth);
   const isCheckingAuth = useAuthStore((s) => s.isCheckingAuth);
+
+  const theme = useThemeStore((s) => s.theme);
 
   useEffect(() => {
     checkAuth();
@@ -28,7 +31,7 @@ function App() {
     );
 
   return (
-    <div>
+    <div data-theme={theme}>
       <Navbar />
 
       <Routes>
