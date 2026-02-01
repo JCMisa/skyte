@@ -18,6 +18,8 @@ interface IAuthStore {
   isSigningOut: boolean;
   isUpdatingProfile: boolean;
   isCheckingAuth: boolean;
+  onlineUsers: any[];
+
   checkAuth: () => Promise<void>;
   signup: (data: {
     fullName: string;
@@ -36,6 +38,7 @@ export const useAuthStore = create<IAuthStore>((set) => ({
   isSigningOut: false,
   isUpdatingProfile: false,
   isCheckingAuth: true,
+  onlineUsers: [],
 
   checkAuth: async () => {
     try {
