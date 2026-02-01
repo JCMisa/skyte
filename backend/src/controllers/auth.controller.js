@@ -98,18 +98,34 @@ export const signout = (req, res) => {
 
 export const updateProfile = async (req, res) => {
     try {
-        const { profilePic } = req.body;
-        const userId = req.user._id
-
-        if (!profilePic) {
-            return res.status(400).json({ message: "Profile picture is required" });
+        if (!req.file) {
+            return res.status(400).json({ message: "Please upload an image" });
         }
 
-        const uploadResponse = await cloudinary.uploader.upload(profilePic)
+        const userId = req.user._id
 
-        const updatedUser = await User.findByIdAndUpdate(userId, {
-            profilePic: uploadResponse.secure_url
-        }, { new: true });
+        // Use a stream to send the buffer to Cloudinary
+        // This is the most RAM-efficient way to handle buffers
+        const uploadStream = () => {
+            return new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { folder: "skyte/profile_pics" },
+                    (error, result) => {
+                        if (result) resolve(result);
+                        else reject(error);
+                    }
+                );
+                stream.end(req.file.buffer);
+            });
+        };
+
+        const cloudRes = await uploadStream();
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { profilePic: cloudRes.secure_url },
+            { new: true }
+        ).select("-password");
 
         res.status(200).json(updatedUser);
     } catch (error) {

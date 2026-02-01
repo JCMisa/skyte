@@ -52,7 +52,7 @@ const Navbar = () => {
                 </Link>
 
                 <button
-                  className="flex gap-2 items-center"
+                  className="flex gap-2 items-center hover:text-red-500/80 transition-colors ml-5"
                   onClick={signout}
                   disabled={isSigningOut}
                 >

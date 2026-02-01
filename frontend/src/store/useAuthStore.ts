@@ -10,6 +10,8 @@ interface IAuthStore {
     email: string;
     password: string;
     profilePic?: string | null;
+    createdAt: string;
+    updatedAt: string;
   } | null;
   isSigningUp: boolean;
   isSigningIn: boolean;
@@ -22,7 +24,9 @@ interface IAuthStore {
     email: string;
     password: string;
   }) => Promise<void>;
+  signin: (data: { email: string; password: string }) => Promise<void>;
   signout: () => Promise<void>;
+  updateProfile: (data: FormData) => Promise<void>;
 }
 
 export const useAuthStore = create<IAuthStore>((set) => ({
@@ -59,6 +63,21 @@ export const useAuthStore = create<IAuthStore>((set) => ({
     }
   },
 
+  signin: async (data) => {
+    set({ isSigningIn: true });
+
+    try {
+      const res = await axiosInstance.post("/auth/signin", data);
+      set({ authUser: res.data });
+      toast.success("Signed in successfully!");
+    } catch (error) {
+      console.log("Signin failed:", error);
+      toast.error("Signin failed!");
+    } finally {
+      set({ isSigningIn: false });
+    }
+  },
+
   signout: async () => {
     set({ isSigningOut: true });
     try {
@@ -70,6 +89,21 @@ export const useAuthStore = create<IAuthStore>((set) => ({
       toast.error("Sign out failed!");
     } finally {
       set({ isSigningOut: false });
+    }
+  },
+
+  updateProfile: async (formData: FormData) => {
+    set({ isUpdatingProfile: true });
+
+    try {
+      const res = await axiosInstance.put("/auth/update-profile", formData);
+      set({ authUser: res.data });
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      console.log("Update Profile failed:", error);
+      toast.error("Update Profile failed!");
+    } finally {
+      set({ isUpdatingProfile: false });
     }
   },
 }));

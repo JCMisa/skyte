@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
+import multer from "multer";
 
 // next props is used to move to the next middleware or controller/function in the routes
 export const protectRoute = async (req, res, next) => {
@@ -26,3 +27,19 @@ export const protectRoute = async (req, res, next) => {
         res.status(500).json({ message: "Internal server error" });
     }
 }
+
+// 1. Configure storage to use RAM (Memory), not Disk (will not store file on local server (file explorer))
+const storage = multer.memoryStorage();
+
+// 2. Add security limits and file filters
+export const safeUpload = multer({
+    storage,
+    limits: { fileSize: 1024 * 1024 * 2 }, // Limit to 2MB 
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith("image/")) {
+            cb(null, true);
+        } else {
+            cb(new Error("Only images are allowed!"), false);
+        }
+    }
+});
