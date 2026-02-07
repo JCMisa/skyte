@@ -38,21 +38,36 @@ export const getMessagesBetweenUsers = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
     try {
-        const { text, image } = req.body;
+        const { text } = req.body;
         const { id: receiverId } = req.params;
         const senderId = req.user._id;
 
         let imageUrl;
-        if (image) {
-            // upload the base64 image to cloudinary
-            const uploadResponse = await cloudinary.uploader.upload(image);
-            imageUrl = uploadResponse.secure_url;
+
+        // Handle image upload if file exists
+        if (req.file) {
+            // Use a stream to send the buffer to Cloudinary
+            const uploadStream = () => {
+                return new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        { folder: "skyte/messages" },
+                        (error, result) => {
+                            if (result) resolve(result);
+                            else reject(error);
+                        }
+                    );
+                    stream.end(req.file.buffer);
+                });
+            };
+
+            const cloudRes = await uploadStream();
+            imageUrl = cloudRes.secure_url;
         }
 
         const newMessage = new Message({
             senderId,
             receiverId,
-            text,
+            text: text || null,
             image: imageUrl || null
         });
 

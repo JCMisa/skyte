@@ -36,6 +36,7 @@ interface IChatStore {
 
   getUsers: () => Promise<void>;
   getMessages: (userId: any) => Promise<void>;
+  sendMessage: (messageData: any) => Promise<void>;
   setSelectedUser: (
     selectedUser: {
       _id: any;
@@ -49,7 +50,7 @@ interface IChatStore {
   ) => void;
 }
 
-export const useChatStore = create<IChatStore>((set) => ({
+export const useChatStore = create<IChatStore>((set, get) => ({
   messages: [],
   users: [],
   selectedUser: null,
@@ -79,6 +80,27 @@ export const useChatStore = create<IChatStore>((set) => ({
       toast.error("Failed to load messages.");
     } finally {
       set({ isMessagesLoading: false });
+    }
+  },
+
+  sendMessage: async (messageData: FormData) => {
+    const { selectedUser, messages } = get();
+
+    try {
+      const res = await axiosInstance.post(
+        `/messages/send/${selectedUser?._id}`,
+        messageData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      set({ messages: [...messages, res.data] });
+    } catch (error) {
+      console.log("Error sending message:", error);
+      toast.error("Failed to send message.");
     }
   },
 
