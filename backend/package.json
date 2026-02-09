@@ -4,7 +4,8 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.5",
     "multer": "^2.0.2",
+    "skyte": "file:..",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
