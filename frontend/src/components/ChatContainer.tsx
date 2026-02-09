@@ -5,22 +5,43 @@ import ChatHeader from "./ChatHeader";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import MessageInput from "./MessageInput";
 import { formatMessageTime } from "../lib/utils";
+import { MoreHorizontalIcon } from "lucide-react";
 
 const ChatContainer = () => {
-  const messageEndRef = useRef(null);
+  const messageEndRef = useRef<HTMLDivElement>(null);
 
   const messages = useChatStore((s) => s.messages);
   const getMessages = useChatStore((s) => s.getMessages);
   const isMessagesLoading = useChatStore((s) => s.isMessagesLoading);
   const selectedUser = useChatStore((s) => s.selectedUser);
-  // const subscribeToMessages = useChatStore((s) => s.subscribeToMessages);
-  // const unsubscribeFromMessages = useChatStore((s) => s.unsubscribeFromMessages);
+  const subscribeToMessages = useChatStore((s) => s.subscribeToMessages);
+  const unsubscribeFromMessages = useChatStore(
+    (s) => s.unsubscribeFromMessages,
+  );
+  const deleteMessage = useChatStore((s) => s.deleteMessage);
 
   const authUser = useAuthStore((s) => s.authUser);
 
   useEffect(() => {
     getMessages(selectedUser?._id);
-  }, [selectedUser?._id, getMessages]);
+
+    subscribeToMessages();
+
+    return () => {
+      unsubscribeFromMessages();
+    };
+  }, [
+    selectedUser?._id,
+    getMessages,
+    subscribeToMessages,
+    unsubscribeFromMessages,
+  ]);
+
+  useEffect(() => {
+    if (messageEndRef.current && messages) {
+      messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   if (isMessagesLoading) {
     return (
@@ -55,10 +76,32 @@ const ChatContainer = () => {
                 />
               </div>
             </div>
-            <div className="chat-header mb-1">
+            <div className="chat-header mb-1 flex items-center gap-2">
               <time className="text-xs opacity-50 ml-1">
                 {formatMessageTime(message.createdAt)}
               </time>
+
+              {message.senderId === authUser?._id && (
+                <div className={`dropdown dropdown-end`}>
+                  <MoreHorizontalIcon
+                    tabIndex={0}
+                    role="button"
+                    className="size-4 cursor-pointer"
+                  />
+
+                  <ul
+                    tabIndex={0}
+                    className="dropdown-content menu bg-base-200 rounded-box z-[1] w-52 p-2 shadow"
+                  >
+                    <li>
+                      <a>Edit</a>
+                    </li>
+                    <li onClick={() => deleteMessage(message._id)}>
+                      <a>Delete</a>
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
             <div className="chat-bubble flex flex-col">
               {message.image && (

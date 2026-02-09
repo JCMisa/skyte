@@ -1,6 +1,8 @@
 import cloudinary from "../lib/cloudinary.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
+
 
 export const getAllUsers = async (req, res) => {
     try {
@@ -73,11 +75,58 @@ export const sendMessage = async (req, res) => {
 
         await newMessage.save();
 
-        // todo: realtime functionality goes here ... (with socket.io)
+        const receiverSocketId = getReceiverSocketId(receiverId);
+
+        // send the new message to the receiver only not broadcast to all users 
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("newMessage", newMessage);
+        }
 
         res.status(201).json(newMessage);
     } catch (error) {
         console.error("Error sending message:", error.message);
+        res.status(500).json({ error: error.message })
+    }
+}
+
+export const deleteMessage = async (req, res) => {
+    try {
+        const { id: messageId } = req.params;
+        const userId = req.user._id;
+
+        const message = await Message
+            .findById(messageId)
+            .orFail(() => new Error("Message not found"));
+
+        // Compare ObjectId values correctly
+        if (!message.senderId.equals(userId)) {
+            return res.status(403).json({ error: "You are not authorized to delete this message" });
+        }
+
+        // Keep receiver id before deletion so we can notify them
+        const receiverId = message.receiverId;
+
+        await Message.findByIdAndDelete(messageId);
+
+        // Notify receiver and sender (if connected) about the deleted message
+        try {
+            const receiverSocketId = getReceiverSocketId(receiverId);
+            const senderSocketId = getReceiverSocketId(message.senderId);
+
+            if (receiverSocketId) {
+                io.to(receiverSocketId).emit("messageDeleted", messageId);
+            }
+
+            if (senderSocketId) {
+                io.to(senderSocketId).emit("messageDeleted", messageId);
+            }
+        } catch (emitError) {
+            console.error("Error emitting messageDeleted socket event:", emitError);
+        }
+
+        res.status(200).json({ message: "Message deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting message:", error.message);
         res.status(500).json({ error: error.message })
     }
 }

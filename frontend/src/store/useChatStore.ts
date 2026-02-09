@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
+import { useAuthStore } from "./useAuthStore";
 
 interface IChatStore {
   messages: {
@@ -37,6 +38,9 @@ interface IChatStore {
   getUsers: () => Promise<void>;
   getMessages: (userId: any) => Promise<void>;
   sendMessage: (messageData: any) => Promise<void>;
+  subscribeToMessages: () => void;
+  unsubscribeFromMessages: () => void;
+  deleteMessage: (messageId: any) => Promise<void>;
   setSelectedUser: (
     selectedUser: {
       _id: any;
@@ -104,7 +108,46 @@ export const useChatStore = create<IChatStore>((set, get) => ({
     }
   },
 
-  // todo: optomize later
+  subscribeToMessages: () => {
+    const { selectedUser } = get();
+    if (!selectedUser) return;
+
+    const socket = useAuthStore.getState().socket;
+
+    socket.on("newMessage", (newMessage: any) => {
+      const isMessageSentFromSelectedUser =
+        newMessage.senderId === selectedUser._id;
+      if (!isMessageSentFromSelectedUser) return; // only add the new message to the list if it's from the currently selected user
+      set({ messages: [...get().messages, newMessage] });
+    });
+
+    // Listen for deleted messages and remove them from state
+    socket.on("messageDeleted", (deletedMessageId: any) => {
+      set({
+        messages: get().messages.filter((m) => m._id !== deletedMessageId),
+      });
+    });
+  },
+
+  unsubscribeFromMessages: () => {
+    const socket = useAuthStore.getState().socket;
+    socket.off("newMessage");
+    socket.off("messageDeleted");
+  },
+
+  deleteMessage: async (messageId: any) => {
+    try {
+      await axiosInstance.post(`/messages/delete/${messageId}`);
+      set({
+        messages: get().messages.filter((message) => message._id !== messageId),
+      });
+      toast.success("Message deleted successfully!");
+    } catch (error) {
+      console.log("Error deleting message:", error);
+      toast.error("Failed to delete message.");
+    }
+  },
+
   setSelectedUser: (
     selectedUser: {
       _id: any;
